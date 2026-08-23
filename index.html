@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chez Fady Cosmétique — Gestion &amp; Facturation</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c9a227">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Chez Fady">
 <style>
 :root{
   --gold:#c9a227;
@@ -223,6 +230,10 @@ select.filter, input.field, select.field{
 }
 .modal-head h3{font-size:16px;}
 .modal-body{padding:20px;}
+.alert-section{margin-bottom:18px;}
+.alert-section h3{font-size:13px; margin-bottom:8px; color:var(--ink-soft);}
+.alert-section table{width:100%; border-collapse:collapse; font-size:12.5px;}
+.alert-section td{padding:5px 4px; border-bottom:1px solid var(--line);}
 .modal-foot{padding:14px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px;}
 .close-x{background:none; border:none; font-size:20px; color:#9a8c67; line-height:1;}
 
@@ -497,7 +508,13 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
         <h1 id="viewTitle">Tableau de bord</h1>
         <div class="sub" id="viewSub">Vue d'ensemble de votre boutique</div>
       </div>
-      <div id="clock"></div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="btn secondary small" id="btnOpenAlerts" title="Voir les alertes intelligentes" style="position:relative;">
+          🔔 Alertes
+          <span id="alertBellDot" style="display:none; position:absolute; top:-4px; right:-4px; width:9px; height:9px; border-radius:50%; background:var(--red);"></span>
+        </button>
+        <div id="clock"></div>
+      </div>
     </div>
 
     <div id="backupBanner" class="backup-banner" style="display:none;">
@@ -623,6 +640,7 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
         <div class="toolbar">
           <input class="search" id="stockSearch" placeholder="Rechercher un produit...">
           <select class="filter" id="stockCategoryFilter"><option value="">Toutes catégories</option></select>
+          <button class="btn secondary" id="btnExportStockCSV">⬇ Exporter CSV</button>
           <button class="btn" id="btnAddProduct">+ Nouveau produit</button>
         </div>
         <div class="panel" style="padding:0;">
@@ -659,6 +677,13 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
 
       <!-- DIAGRAMMES -->
       <section class="view" id="view-diagrammes">
+        <div class="panel" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h2 style="margin:0;">📄 Rapport des 30 derniers jours</h2>
+            <p style="font-size:12px; color:#8a7d5f; margin-top:4px;">Ventes, produits les plus vendus, stock faible et péremptions — prêt à imprimer ou enregistrer en PDF.</p>
+          </div>
+          <button class="btn" id="btnPrintableReport">🖨 Générer le rapport</button>
+        </div>
         <div class="panel">
           <h2>Ventes sur la période <span class="hint">Total encaissé par jour</span></h2>
           <div class="toolbar" style="margin-bottom:14px;">
@@ -726,6 +751,7 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
           <input class="search" id="histSearch" placeholder="Rechercher par N° facture ou client...">
           <input type="date" class="field" id="histDate">
           <button class="btn secondary" id="btnHistReset">Réinitialiser filtre</button>
+          <button class="btn secondary" id="btnExportInvoicesCSV">⬇ Exporter CSV</button>
         </div>
         <div class="panel" style="padding:0;">
           <table>
@@ -748,6 +774,21 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
           </table>
         </div>
       </section>
+
+      <!-- Modal: alertes intelligentes -->
+      <div class="overlay" id="modalSmartAlerts">
+        <div class="modal">
+          <div class="modal-head">
+            <h3>🔔 Alertes intelligentes</h3>
+            <button class="close-x" data-close="modalSmartAlerts">✕</button>
+          </div>
+          <div class="modal-body" id="smartAlertsBody"></div>
+          <div class="modal-foot">
+            <button class="btn secondary" id="btnSmartAlertsExport">⬇ Exporter en CSV</button>
+            <button class="btn" data-close="modalSmartAlerts">Fermer</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Modal: fiche client -->
       <div class="overlay" id="modalClient">
@@ -870,6 +911,27 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
             <input type="file" id="importFile" accept=".json" style="display:none;">
             <div id="lastBackupInfo" style="font-size:11.5px; color:#8a7d5f; margin-top:10px;"></div>
           </div>
+
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line);">
+            <div style="font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:8px;">🔄 Synchroniser avec un autre appareil (téléphone ⇄ ordinateur)</div>
+            <p style="font-size:12px; color:#8a7d5f; margin-bottom:10px;">
+              Envoie directement le fichier de sauvegarde vers WhatsApp, Bluetooth, Google Drive, etc. depuis le
+              téléphone qui contient les données les plus récentes, puis ouvre l'app sur l'autre appareil et
+              importe ce fichier via « Importer une sauvegarde » ci-dessus.
+            </p>
+            <button class="btn" id="btnShareBackup">📤 Partager la sauvegarde</button>
+          </div>
+        </div>
+
+        <div class="panel" style="max-width:640px;">
+          <h2>🔔 Alertes intelligentes</h2>
+          <p style="font-size:12.5px; color:#8a7d5f; margin-bottom:12px;">
+            Chaque jour à l'ouverture, l'application signale automatiquement les ruptures de stock, les produits
+            proches de la péremption et les suggestions de réapprovisionnement. Active les notifications pour être
+            averti même si l'onglet est en arrière-plan (utile une fois l'app installée sur ton téléphone).
+          </p>
+          <button class="btn secondary" id="btnEnableNotif">🔔 Activer les notifications</button>
+          <span id="notifStatusMsg" style="font-size:12px; color:#8a7d5f; margin-left:10px;"></span>
         </div>
 
         <div class="panel" style="max-width:640px;">
@@ -1054,7 +1116,7 @@ body.mode-tactile #view-facturation .qty-btn{ width:32px; height:32px; font-size
         <div style="position:absolute; inset:12%; border:2px solid var(--gold); border-radius:10px; pointer-events:none;"></div>
       </div>
       <canvas id="scannerCanvas" style="display:none;"></canvas>
-      <p id="scannerStatus" style="margin-top:10px; font-size:12.5px; color:var(--ink-soft); text-align:center;">Placez un QR code devant la caméra.</p>
+      <p id="scannerStatus" style="margin-top:10px; font-size:12.5px; color:var(--ink-soft); text-align:center;">Placez un QR code ou un code-barres produit devant la caméra.</p>
       <p id="scannerErr" class="err"></p>
     </div>
     <div class="modal-foot">
@@ -1591,6 +1653,179 @@ function toast(msg) {
 }
 function openModal(id) { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+/* ---------------- Export CSV générique (compatible Excel FR) ---------------- */
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(cell => {
+    const s = String(cell ?? "");
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(";")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("✓ Fichier exporté : " + filename);
+}
+
+function exportStockCSV() {
+  const rows = [["Produit", "Catégorie", "Prix achat", "Prix vente", "Quantité", "Seuil alerte", "Péremption"]];
+  DB.products.forEach(p => rows.push([p.nom, p.categorie || "", p.prixAchat, p.prixVente, p.quantite, p.seuil, p.datePeremption || ""]));
+  downloadCSV(rows, `stock_${todayISO()}.csv`);
+}
+document.getElementById("btnExportStockCSV").addEventListener("click", exportStockCSV);
+
+function exportInvoicesCSV() {
+  const rows = [["N° Facture", "Date", "Client", "Paiement", "Total HT", "TVA", "Total TTC"]];
+  [...DB.invoices].sort((a, b) => b.date.localeCompare(a.date)).forEach(inv => {
+    rows.push([inv.numero, new Date(inv.date).toLocaleString("fr-FR"), inv.client || "Client comptoir", inv.paiement || "", inv.totalHT, inv.totalTVA, inv.totalTTC]);
+  });
+  downloadCSV(rows, `factures_${todayISO()}.csv`);
+}
+document.getElementById("btnExportInvoicesCSV").addEventListener("click", exportInvoicesCSV);
+
+/* ---------------- Rapport imprimable / PDF (via impression navigateur) ---------------- */
+function openPrintableReport() {
+  const s = DB.settings;
+  const since = new Date(todayISO() + "T00:00:00");
+  since.setDate(since.getDate() - 30);
+  const invoices30 = DB.invoices.filter(inv => new Date(inv.date) >= since);
+  const totalVentes = invoices30.reduce((sum, inv) => sum + inv.totalTTC, 0);
+  const nbFactures = invoices30.length;
+  const panierMoyen = nbFactures ? totalVentes / nbFactures : 0;
+
+  const qtyByProduct = {};
+  invoices30.forEach(inv => inv.items.forEach(it => { qtyByProduct[it.nom] = (qtyByProduct[it.nom] || 0) + it.qte; }));
+  const topProducts = Object.entries(qtyByProduct).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  const lowStock = DB.products.filter(p => p.quantite <= p.seuil);
+  const expiringList = DB.products.map(p => ({ p, exp: expiryInfo(p) })).filter(x => x.exp && x.exp.label);
+
+  const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`;
+  const win = window.open("", "_blank");
+  if (!win) { toast("⚠ Autorisez les fenêtres pop-up pour générer le rapport."); return; }
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Rapport — ${escapeHTML(s.nom)}</title>
+    <style>
+      body{font-family:Georgia,"Times New Roman",serif; padding:30px; color:#1c1712; max-width:800px; margin:0 auto;}
+      h1{font-size:21px; margin-bottom:2px;}
+      .sub{font-size:12.5px; color:#8a7d5f; margin-bottom:18px;}
+      h2{font-size:15px; margin-top:26px; border-bottom:1px solid #ddd; padding-bottom:5px;}
+      table{width:100%; border-collapse:collapse; margin-top:10px; font-size:12.5px;}
+      th,td{border-bottom:1px solid #eee; padding:6px 4px; text-align:left;}
+      .kpis{display:flex; gap:16px; margin-top:14px; flex-wrap:wrap;}
+      .kpi{border:1px solid #ddd; border-radius:8px; padding:10px 18px;}
+      .kpi .l{font-size:11px; color:#8a7d5f;}
+      .kpi .v{font-size:19px; font-weight:bold;}
+      .printbtn{margin-top:26px; padding:10px 20px; font-size:14px; cursor:pointer; background:#c9a227; color:#fff; border:none; border-radius:8px;}
+      @media print { .printbtn{display:none;} }
+    </style></head><body>
+    <h1>${escapeHTML(s.nom)}</h1>
+    <div class="sub">Rapport généré le ${nowFR()} — période : 30 derniers jours</div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Ventes totales</div><div class="v">${fmt(totalVentes)}</div></div>
+      <div class="kpi"><div class="l">Factures</div><div class="v">${nbFactures}</div></div>
+      <div class="kpi"><div class="l">Panier moyen</div><div class="v">${fmt(panierMoyen)}</div></div>
+    </div>
+    <h2>Produits les plus vendus</h2>
+    <table><thead>${row(["Produit", "Quantité vendue"])}</thead><tbody>
+      ${topProducts.length ? topProducts.map(([nom, qte]) => row([escapeHTML(nom), qte])).join("") : row(["Aucune vente sur la période", ""])}
+    </tbody></table>
+    <h2>Stock faible ou en rupture (${lowStock.length})</h2>
+    <table><thead>${row(["Produit", "Quantité", "Seuil"])}</thead><tbody>
+      ${lowStock.length ? lowStock.map(p => row([escapeHTML(p.nom), p.quantite, p.seuil])).join("") : row(["Aucun", "", ""])}
+    </tbody></table>
+    <h2>Produits proches de la péremption (${expiringList.length})</h2>
+    <table><thead>${row(["Produit", "Date de péremption", "Statut"])}</thead><tbody>
+      ${expiringList.length ? expiringList.map(x => row([escapeHTML(x.p.nom), x.p.datePeremption, x.exp.label])).join("") : row(["Aucun", "", ""])}
+    </tbody></table>
+    <button class="printbtn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    </body></html>`);
+  win.document.close();
+}
+document.getElementById("btnPrintableReport").addEventListener("click", openPrintableReport);
+
+/* ==========================================================================
+   ALERTES INTELLIGENTES
+   Vérifiées une fois par jour à l'ouverture (et à la demande via la cloche
+   dans la barre du haut) : ruptures, stock faible, péremptions, et
+   suggestions de réapprovisionnement basées sur le rythme de vente.
+   ========================================================================== */
+const SMART_ALERTS_LAST_KEY = "chezfady_last_alert_check";
+let lastSmartAlertsData = null;
+
+function buildSmartAlertsData() {
+  const ruptures = DB.products.filter(p => p.quantite === 0);
+  const faibles = DB.products.filter(p => p.quantite > 0 && p.quantite <= p.seuil);
+  const expInfos = DB.products.map(p => ({ p, exp: expiryInfo(p) })).filter(x => x.exp);
+  const expires = expInfos.filter(x => x.exp.days < 0);
+  const bientot = expInfos.filter(x => x.exp.days >= 0 && x.exp.label);
+  const reappro = getStockPredictions().filter(r => r.daysLeft <= 14);
+  return { ruptures, faibles, expires, bientot, reappro };
+}
+
+function renderSmartAlertsModal(data) {
+  const { ruptures, faibles, expires, bientot, reappro } = data;
+  const section = (title, items, renderRow) => items.length
+    ? `<div class="alert-section"><h3>${title} (${items.length})</h3><table><tbody>${items.map(renderRow).join("")}</tbody></table></div>`
+    : "";
+  let html = "";
+  html += section("🔴 Ruptures de stock", ruptures, p => `<tr><td>${escapeHTML(p.nom)}</td><td style="text-align:right;">0 en stock</td></tr>`);
+  html += section("🟠 Stock faible", faibles, p => `<tr><td>${escapeHTML(p.nom)}</td><td style="text-align:right;">${p.quantite} / seuil ${p.seuil}</td></tr>`);
+  html += section("⚫ Produits périmés", expires, x => `<tr><td>${escapeHTML(x.p.nom)}</td><td style="text-align:right;">${x.exp.label}</td></tr>`);
+  html += section("🟡 Bientôt périmés", bientot, x => `<tr><td>${escapeHTML(x.p.nom)}</td><td style="text-align:right;">${x.exp.label}</td></tr>`);
+  html += section("💡 Suggestions de réapprovisionnement", reappro, r => `<tr><td>${escapeHTML(r.p.nom)}</td><td style="text-align:right;">${r.daysLeft === Infinity ? "—" : Math.round(r.daysLeft) + " j restants"}</td></tr>`);
+  if (!html) html = `<p style="color:var(--ink-soft); text-align:center; padding:20px 0;">✓ Tout va bien, aucune alerte pour le moment.</p>`;
+  document.getElementById("smartAlertsBody").innerHTML = html;
+  lastSmartAlertsData = data;
+
+  const hasAlerts = ruptures.length + faibles.length + expires.length + bientot.length + reappro.length > 0;
+  const dot = document.getElementById("alertBellDot");
+  if (dot) dot.style.display = hasAlerts ? "block" : "none";
+}
+
+function checkSmartAlerts(opts = {}) {
+  const { force = false, silent = false } = opts;
+  const today = todayISO();
+  if (!force) {
+    let last = null;
+    try { last = localStorage.getItem(SMART_ALERTS_LAST_KEY); } catch (e) {}
+    if (last === today) { renderSmartAlertsModal(buildSmartAlertsData()); return; }
+  }
+  const data = buildSmartAlertsData();
+  renderSmartAlertsModal(data);
+  const total = data.ruptures.length + data.faibles.length + data.expires.length + data.bientot.length + data.reappro.length;
+  if (!silent && total > 0) {
+    openModal("modalSmartAlerts");
+    if ("Notification" in window && Notification.permission === "granted") {
+      try { new Notification("Chez Fady — Alertes stock", { body: `${total} produit(s) nécessitent votre attention.`, icon: "icon-192.png" }); } catch (e) {}
+    }
+  }
+  try { localStorage.setItem(SMART_ALERTS_LAST_KEY, today); } catch (e) {}
+}
+
+document.getElementById("btnOpenAlerts").addEventListener("click", () => checkSmartAlerts({ force: true }));
+
+document.getElementById("btnSmartAlertsExport").addEventListener("click", () => {
+  if (!lastSmartAlertsData) return;
+  const rows = [["Type", "Produit", "Détail"]];
+  lastSmartAlertsData.ruptures.forEach(p => rows.push(["Rupture", p.nom, "0 en stock"]));
+  lastSmartAlertsData.faibles.forEach(p => rows.push(["Stock faible", p.nom, `${p.quantite} / seuil ${p.seuil}`]));
+  lastSmartAlertsData.expires.forEach(x => rows.push(["Périmé", x.p.nom, x.exp.label]));
+  lastSmartAlertsData.bientot.forEach(x => rows.push(["Bientôt périmé", x.p.nom, x.exp.label]));
+  lastSmartAlertsData.reappro.forEach(r => rows.push(["Réapprovisionnement", r.p.nom, r.daysLeft === Infinity ? "—" : `${Math.round(r.daysLeft)} j restants`]));
+  if (rows.length === 1) { toast("Aucune alerte à exporter."); return; }
+  downloadCSV(rows, `alertes_${todayISO()}.csv`);
+});
+
+document.getElementById("btnEnableNotif").addEventListener("click", async () => {
+  const msg = document.getElementById("notifStatusMsg");
+  if (!("Notification" in window)) { msg.textContent = "⚠ Non supporté par ce navigateur."; return; }
+  const perm = await Notification.requestPermission();
+  msg.textContent = perm === "granted" ? "✓ Notifications activées." : "⚠ Notifications refusées.";
+});
 
 document.querySelectorAll("[data-close]").forEach(btn => {
   btn.addEventListener("click", () => closeModal(btn.dataset.close));
@@ -2877,6 +3112,30 @@ document.getElementById("btnExportData").addEventListener("click", () => {
   toast("✓ Export terminé");
 });
 
+document.getElementById("btnShareBackup").addEventListener("click", async () => {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: "application/json" });
+  const filename = `chezfady_sauvegarde_${todayISO()}.json`;
+  const file = new File([blob], filename, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: "Sauvegarde Chez Fady Cosmétique", text: "Fichier de sauvegarde à importer sur l'autre appareil." });
+      markBackupDone();
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+  // Repli : téléchargement classique, à envoyer manuellement (WhatsApp Web, email, clé USB...)
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  markBackupDone();
+  toast("📥 Fichier téléchargé — envoyez-le à l'autre appareil puis importez-le.");
+});
+
 /* ---------------- Fichier de sauvegarde relié : boutons ---------------- */
 document.getElementById("btnLinkFile").addEventListener("click", () => {
   if (linkedFileHandle) {
@@ -3120,12 +3379,139 @@ document.getElementById("btnWhatsAppTicket").addEventListener("click", () => sen
 document.getElementById("btnWhatsAppTicketHist").addEventListener("click", () => sendInvoiceViaWhatsApp(currentHistInvoice, "ticketHist"));
 
 /* ==========================================================================
-   SCANNER CAMÉRA (QR code)
-   Utilise jsQR pour lire un QR code via la caméra de l'appareil. Permet de :
+   DÉCODEUR CODE-BARRES EAN-13 / UPC-A (pur JS, sans librairie externe)
+   Lit une ligne horizontale de pixels binarisés (1 = foncé, 0 = clair) et
+   tente d'y reconnaître un code-barres EAN-13 ou UPC-A classique (imprimé
+   par les fabricants sur presque tous les produits du commerce).
+   ========================================================================== */
+const EAN_L_CODES = {
+  "0001101":0,"0011001":1,"0010011":2,"0111101":3,"0100011":4,
+  "0110001":5,"0101111":6,"0111011":7,"0110111":8,"0001011":9
+};
+const EAN_G_CODES = {
+  "0100111":0,"0110011":1,"0011011":2,"0100001":3,"0011101":4,
+  "0111001":5,"0000101":6,"0010001":7,"0001001":8,"0010111":9
+};
+const EAN_R_CODES = {
+  "1110010":0,"1100110":1,"1101100":2,"1000010":3,"1011100":4,
+  "1001110":5,"1010000":6,"1000100":7,"1001000":8,"1110100":9
+};
+const EAN_FIRST_DIGIT_PARITY = {
+  "LLLLLL":0,"LLGLGG":1,"LLGGLG":2,"LLGGGL":3,"LGLLGG":4,
+  "LGGLLG":5,"LGGGLL":6,"LGLGLG":7,"LGLGGL":8,"LGGLGL":9
+};
+
+function eanChecksumValid(digits13) {
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const d = digits13.charCodeAt(i) - 48;
+    sum += (i % 2 === 0) ? d : d * 3;
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return check === (digits13.charCodeAt(12) - 48);
+}
+
+function decodeEAN13Row(binaryRow) {
+  const n = binaryRow.length;
+  if (n < 20) return null;
+  const runs = [];
+  let cur = binaryRow[0], start = 0;
+  for (let i = 1; i <= n; i++) {
+    if (i === n || binaryRow[i] !== cur) {
+      runs.push({ val: cur, len: i - start });
+      if (i < n) { cur = binaryRow[i]; start = i; }
+    }
+  }
+  for (let gi = 0; gi < runs.length - 2; gi++) {
+    if (runs[gi].val !== 1) continue;
+    const g1 = runs[gi], g2 = runs[gi + 1], g3 = runs[gi + 2];
+    if (g2.val !== 0 || g3.val !== 1) continue;
+    const moduleWidth = (g1.len + g2.len + g3.len) / 3;
+    if (moduleWidth < 0.5) continue;
+    if (Math.abs(g1.len - moduleWidth) > moduleWidth * 0.6) continue;
+    if (Math.abs(g2.len - moduleWidth) > moduleWidth * 0.6) continue;
+    if (Math.abs(g3.len - moduleWidth) > moduleWidth * 0.6) continue;
+
+    // Reconstruit la chaîne de modules à partir des plages RÉELLEMENT
+    // mesurées (pas par un pas arithmétique fixe), pour éviter toute dérive
+    // cumulative sur 95 modules quand la largeur réelle n'est pas un nombre
+    // entier de pixels (cas courant avec une caméra en direct).
+    let modules = "101";
+    let ri = gi + 3;
+    while (modules.length < 95 && ri < runs.length) {
+      const r = runs[ri];
+      let count = Math.round(r.len / moduleWidth);
+      if (count < 1) count = 1;
+      modules += String(r.val).repeat(count);
+      ri++;
+    }
+    if (modules.length < 95) continue;
+    modules = modules.slice(0, 95);
+
+    if (modules.slice(0, 3) !== "101") continue;
+    if (modules.slice(45, 50) !== "01010") continue;
+    if (modules.slice(92, 95) !== "101") continue;
+
+    let leftDigits = "", parity = "", valid = true;
+    for (let d = 0; d < 6; d++) {
+      const chunk = modules.slice(3 + d * 7, 3 + d * 7 + 7);
+      if (chunk in EAN_L_CODES) { leftDigits += EAN_L_CODES[chunk]; parity += "L"; }
+      else if (chunk in EAN_G_CODES) { leftDigits += EAN_G_CODES[chunk]; parity += "G"; }
+      else { valid = false; break; }
+    }
+    if (!valid) continue;
+
+    let rightDigits = "";
+    for (let d = 0; d < 6; d++) {
+      const chunk = modules.slice(50 + d * 7, 50 + d * 7 + 7);
+      if (chunk in EAN_R_CODES) rightDigits += EAN_R_CODES[chunk];
+      else { valid = false; break; }
+    }
+    if (!valid) continue;
+
+    const firstDigit = EAN_FIRST_DIGIT_PARITY[parity];
+    if (firstDigit === undefined) continue;
+
+    const digits13 = String(firstDigit) + leftDigits + rightDigits;
+    if (digits13.length === 13 && eanChecksumValid(digits13)) return digits13;
+  }
+  return null;
+}
+
+// Binarise une ligne horizontale de l'image caméra (niveaux de gris avec
+// seuil local simple) et tente d'y décoder un code-barres EAN-13/UPC-A.
+function scanBarcodeInImageData(imageData) {
+  const { data, width, height } = imageData;
+  const rowFractions = [0.5, 0.45, 0.55, 0.4, 0.6];
+  for (const frac of rowFractions) {
+    const y = Math.max(0, Math.min(height - 1, Math.floor(height * frac)));
+    const gray = new Uint8ClampedArray(width);
+    let min = 255, max = 0;
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      gray[x] = g;
+      if (g < min) min = g;
+      if (g > max) max = g;
+    }
+    if (max - min < 25) continue; // ligne trop peu contrastée (pas de code-barres visible ici)
+    const threshold = (min + max) / 2;
+    const binaryRow = new Uint8Array(width);
+    for (let x = 0; x < width; x++) binaryRow[x] = gray[x] < threshold ? 1 : 0;
+    const result = decodeEAN13Row(binaryRow);
+    if (result) return result;
+  }
+  return null;
+}
+
+/* ==========================================================================
+   SCANNER CAMÉRA (QR code + codes-barres EAN-13/UPC-A)
+   Utilise jsQR pour lire un QR code via la caméra de l'appareil, et le
+   décodeur ci-dessus pour les codes-barres 1D classiques (EAN-13/UPC-A)
+   imprimés par les fabricants sur la plupart des produits du commerce.
+   Permet de :
    - remplir le champ "Code-barres / QR" d'une fiche produit,
-   - retrouver rapidement un produit en caisse à partir de son QR.
-   Note : jsQR lit les QR codes ; les codes-barres 1D classiques (EAN/UPC)
-   imprimés par les fabricants nécessiteraient une librairie différente.
+   - retrouver rapidement un produit en caisse à partir de son code.
    ========================================================================== */
 let scannerStream = null;
 let scannerRAF = null;
@@ -3138,7 +3524,7 @@ function openScanner(onResult) {
   }
   scannerOnResult = onResult;
   document.getElementById("scannerErr").textContent = "";
-  document.getElementById("scannerStatus").textContent = "Placez un QR code devant la caméra.";
+  document.getElementById("scannerStatus").textContent = "Placez un QR code ou un code-barres produit devant la caméra.";
   openModal("modalScanner");
 
   navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -3168,11 +3554,19 @@ function scannerLoop() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
       if (code && code.data) {
-        document.getElementById("scannerStatus").textContent = "✓ Code détecté !";
+        document.getElementById("scannerStatus").textContent = "✓ Code QR détecté !";
         const result = code.data;
         const cb = scannerOnResult;
         closeScanner();
         if (cb) cb(result);
+        return;
+      }
+      const barcode = scanBarcodeInImageData(imageData);
+      if (barcode) {
+        document.getElementById("scannerStatus").textContent = "✓ Code-barres détecté !";
+        const cb = scannerOnResult;
+        closeScanner();
+        if (cb) cb(barcode);
         return;
       }
     }
@@ -3233,6 +3627,7 @@ function startApp() {
   } else {
     tryReconnectLinkedFile();
     renderDashboard();
+    checkSmartAlerts();
   }
 }
 
@@ -3283,6 +3678,13 @@ if (verifyParam) {
     // mais n'affiche le contenu de l'application qu'après sa création (voir
     // le gestionnaire de btnAuthCreate ci-dessus).
   }
+}
+
+/* ---------------- PWA : enregistrement du service worker ---------------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch((e) => console.warn("Échec d'enregistrement du service worker.", e));
+  });
 }
 
 </script>
